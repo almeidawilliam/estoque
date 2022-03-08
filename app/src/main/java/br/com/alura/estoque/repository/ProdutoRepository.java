@@ -11,11 +11,13 @@ import br.com.alura.estoque.model.Produto;
 import br.com.alura.estoque.retrofit.EstoqueRetrofit;
 import br.com.alura.estoque.retrofit.service.ProdutoService;
 import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProdutoRepository {
 
     private final ProdutoDAO dao;
+    private ProdutoService produtoService;
 
     public ProdutoRepository(ProdutoDAO dao) {
         this.dao = dao;
@@ -23,6 +25,7 @@ public class ProdutoRepository {
 
     public void buscaProdutos(DadosCarregadosListener<List<Produto>> listener) {
         buscaProdutosInternos(listener);
+        produtoService = new EstoqueRetrofit().getProdutoService();
     }
 
     private void buscaProdutosInternos(DadosCarregadosListener<List<Produto>> listener) {
@@ -35,7 +38,7 @@ public class ProdutoRepository {
     }
 
     private void buscaProdutosNaApi(DadosCarregadosListener<List<Produto>> listener) {
-        ProdutoService produtoService = new EstoqueRetrofit().getProdutoService();
+
         Call<List<Produto>> call = produtoService.buscaTodos();
         new BaseAsyncTask<>(
                 () -> {
@@ -54,13 +57,25 @@ public class ProdutoRepository {
 
     public void salva(Produto produto,
                       DadosCarregadosListener<Produto> listener) {
-        new BaseAsyncTask<>(
-                () -> {
-                    long id = dao.salva(produto);
-                    return dao.buscaProduto(id);
-                },
-                listener::quandoCarregados
-        ).execute();
+        Call<Produto> call = produtoService.salva(produto);
+        call.enqueue(new Callback<Produto>() {
+            @Override
+            public void onResponse(Call<Produto> call, Response<Produto> response) {
+                Produto produtoSalvo = response.body();
+                new BaseAsyncTask<>(
+                        () -> {
+                            long id = dao.salva(produtoSalvo);
+                            return dao.buscaProduto(id);
+                        },
+                        listener::quandoCarregados
+                ).execute();
+            }
+
+            @Override
+            public void onFailure(Call<Produto> call, Throwable t) {
+
+            }
+        });
     }
 
     public interface DadosCarregadosListener<T> {
