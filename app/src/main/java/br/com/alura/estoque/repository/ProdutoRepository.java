@@ -101,7 +101,8 @@ public class ProdutoRepository {
         editaNaApi(produto, callback);
     }
 
-    private void editaNaApi(Produto produto, DadosCarregadosCallback<Produto> callback) {
+    private void editaNaApi(Produto produto,
+                            DadosCarregadosCallback<Produto> callback) {
         Call<Produto> call = produtoService.edita(produto.getId(), produto);
         call.enqueue(new BaseCallback<>(new BaseCallback.RespostaCallback<Produto>() {
             @Override
@@ -123,6 +124,38 @@ public class ProdutoRepository {
                     return produto;
                 }, callback::quandoSucesso
         ).execute();
+    }
+
+    public void remove(Produto produto,
+                       DadosCarregadosCallback<Void> callback) {
+        removeNaApi(produto, callback);
+
+    }
+
+    private void removeNaApi(Produto produto, DadosCarregadosCallback<Void> callback) {
+        Call<Void> call = produtoService.remove(produto.getId());
+        call.enqueue(
+                new BaseCallback<>(
+                        new BaseCallback.RespostaCallback<Void>() {
+                            @Override
+                            public void quandoSucesso(Void resultado) {
+                                removeInterno(produto, callback);
+                            }
+
+                            @Override
+                            public void quandoFalha(String erro) {
+
+                            }
+                        })
+        );
+    }
+
+    private void removeInterno(Produto produto, DadosCarregadosCallback<Void> callback) {
+        new BaseAsyncTask<>(() -> {
+            dao.remove(produto);
+            return null;
+        }, callback::quandoSucesso)
+                .execute();
     }
 
     public interface DadosCarregadosCallback<T> {
