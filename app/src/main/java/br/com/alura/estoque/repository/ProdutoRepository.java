@@ -50,11 +50,11 @@ public class ProdutoRepository {
                 }));
     }
 
-    private void atualizaInterno(List<Produto> produtos, DadosCarregadosCallback<List<Produto>> callback) {
+    private void atualizaInterno(List<Produto> produtos,
+                                 DadosCarregadosCallback<List<Produto>> callback) {
         new BaseAsyncTask<>(
                 () -> {
                     dao.salva(produtos);
-                    callback.quandoSucesso(dao.buscaTodos());
                     return dao.buscaTodos();
                 },
                 callback::quandoSucesso
@@ -94,6 +94,34 @@ public class ProdutoRepository {
                     return dao.buscaProduto(id);
                 },
                 callback::quandoSucesso
+        ).execute();
+    }
+
+    public void edita(Produto produto, DadosCarregadosCallback<Produto> callback) {
+        editaNaApi(produto, callback);
+    }
+
+    private void editaNaApi(Produto produto, DadosCarregadosCallback<Produto> callback) {
+        Call<Produto> call = produtoService.edita(produto.getId(), produto);
+        call.enqueue(new BaseCallback<>(new BaseCallback.RespostaCallback<Produto>() {
+            @Override
+            public void quandoSucesso(Produto resultado) {
+                editaInterno(produto, callback);
+            }
+
+            @Override
+            public void quandoFalha(String erro) {
+                callback.quandofalha(erro);
+            }
+        }));
+    }
+
+    private void editaInterno(Produto produto, DadosCarregadosCallback<Produto> callback) {
+        new BaseAsyncTask<>(
+                () -> {
+                    dao.atualiza(produto);
+                    return produto;
+                }, callback::quandoSucesso
         ).execute();
     }
 
